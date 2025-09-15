@@ -31,3 +31,7 @@ for (int r = 0; r < ROWS; ++r) {
         matrix[r][c] = x;
     }
 }
+int pipes[ROWS][2];
+for (int r = 0; r < ROWS; ++r) {
+    if (pipe(pipes[r]) == -1) die("pipe");
+}
