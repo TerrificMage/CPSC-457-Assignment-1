@@ -46,3 +46,22 @@ for (int r = 0; r < ROWS; ++r) {
         close(pipes[r][1]);
     }
 }
+if (pid == 0) {
+    for (int i = 0; i < ROWS; ++i) {
+        close(pipes[i][0]);
+        if (i != r) close(pipes[i][1]);
+    }
+
+    int found_col = -1;
+    for (int c = 0; c < COLS; ++c) {
+        if (matrix[r][c] == 1) { found_col = c; break; }
+    }
+
+    if (found_col >= 0) {
+        if (write(pipes[r][1], &found_col, sizeof(found_col)) != sizeof(found_col)) {
+            _exit(r & 0xFF); // success: return row index
+        }
+        close(pipes[r][1]);
+        _exit(NOT_FOUND); // No treasure found
+    }
+}
