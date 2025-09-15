@@ -14,3 +14,20 @@ static void die(const char *msg) {
 int main(void) {
     // Initial program setup, matrix reading to follow.
 }
+static int matrix[ROWS][COLS];
+
+// Read a 100x1000 matrix of 0/1 from stdin (robust to whitespace/newlines)
+for (int r = 0; r < ROWS; ++r) {
+    for (int c = 0; c < COLS; ++c) {
+        int x;
+        if (scanf("%d", &x) != 1) {
+            fprintf(stderr, "Input error: expected %dx%d integers\n", ROWS, COLS);
+            return EXIT_FAILURE;
+        }
+        if (x != 0 && x != 1) {
+            fprintf(stderr, "Input error: values must be 0 or 1\n");
+            return EXIT_FAILURE;
+        }
+        matrix[r][c] = x;
+    }
+}
