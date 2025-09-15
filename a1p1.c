@@ -35,3 +35,14 @@ int pipes[ROWS][2];
 for (int r = 0; r < ROWS; ++r) {
     if (pipe(pipes[r]) == -1) die("pipe");
 }
+pid_t pids[ROWS];
+for (int r = 0; r < ROWS; ++r) {
+    pid_t pid = fork();
+    if (pid < 0) die("fork");
+    if (pid == 0) {
+        // Child process code
+    } else {
+        pids[r] = pid;
+        close(pipes[r][1]);
+    }
+}
