@@ -82,3 +82,10 @@ for (int k = 0; k < ROWS; ++k) {
         }
     }
 }
+if (found && found_row >= 0 && found_col >= 0) {
+    printf("Parent: The treasure was found by child with PID %d at row %d, column %d\n",
+           (int)found_pid, found_row, found_col);
+} else {
+    printf("Parent: No treasure was found in the matrix\n");
+}
+return 0;
