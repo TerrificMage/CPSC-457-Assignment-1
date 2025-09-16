@@ -65,3 +65,20 @@ if (pid == 0) {
         _exit(NOT_FOUND); // No treasure found
     }
 }
+for (int k = 0; k < ROWS; ++k) {
+    int status;
+    pid_t pid = wait(&status);
+    if (pid == -1) die("wait");
+
+    if (WIFEXITED(status)) {
+        int code = WEXITSTATUS(status);
+        if (code != NOT_FOUND && !found) {
+            found = 1;
+            found_row = code;  
+            pid_t found_pid = pid;
+            int col;
+            read(pipes[found_row][0], &col, sizeof(col));
+            found_col = col;
+        }
+    }
+}
