@@ -41,3 +41,9 @@ for (long long x = starts[i]; x <= ends[i]; ++x) {
         block_ptr[count++] = (int)x;
     }
 }
+for (int i = 0; i < N; ++i) {
+    int count = shm[1 + i];
+    for (int k = 0; k < count; ++k) {
+        printf("%d ", block_ptr[k]);
+    }
+}
