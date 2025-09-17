@@ -36,3 +36,8 @@ for (int i = 0; i < N; ++i) {
         pids[i] = pid;
     }
 }
+for (long long x = starts[i]; x <= ends[i]; ++x) {
+    if (is_prime(x)) {
+        block_ptr[count++] = (int)x;
+    }
+}
