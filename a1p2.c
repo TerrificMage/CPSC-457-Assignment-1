@@ -26,3 +26,13 @@ if (shmid < 0) die("shmget");
 
 int *shm = (int *)shmat(shmid, NULL, 0);
 if (shm == (void *)-1) die("shmat");
+pid_t pids[N];
+for (int i = 0; i < N; ++i) {
+    pid_t pid = fork();
+    if (pid < 0) die("fork");
+    if (pid == 0) {
+        // Child prime-checking logic
+    } else {
+        pids[i] = pid;
+    }
+}
