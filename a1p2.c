@@ -20,3 +20,9 @@ if (argc != 4) {
 long long L = atoll(argv[1]);
 long long U = atoll(argv[2]);
 int N = atoi(argv[3]);
+size_t shm_bytes = total_ints * sizeof(int);
+int shmid = shmget(IPC_PRIVATE, shm_bytes, IPC_CREAT | 0666);
+if (shmid < 0) die("shmget");
+
+int *shm = (int *)shmat(shmid, NULL, 0);
+if (shm == (void *)-1) die("shmat");
