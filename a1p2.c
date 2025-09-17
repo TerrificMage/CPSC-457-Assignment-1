@@ -13,3 +13,10 @@ static int is_prime(long long x) {
     }
     return 1;
 }
+if (argc != 4) {
+    fprintf(stderr, "Usage: %s LOWER_BOUND UPPER_BOUND N\n", argv[0]);
+    return EXIT_FAILURE;
+}
+long long L = atoll(argv[1]);
+long long U = atoll(argv[2]);
+int N = atoi(argv[3]);
