@@ -1,85 +1,68 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/shm.h>
+#include <math.h>
 
-#define MAX_PRIMES_PER_CHILD 1000
+#define MIN_NUM 100
+#define MAX_NUM 249
 
-int *shm_ptr;
-int shmid;
-
+// Function to check if a number is prime
 int is_prime(int num) {
-    if (num < 2) return 0;
-    for (int i = 2; i <= sqrt(num); i++) {
+    if (num <= 1) return 0;
+    for (int i = 2; i <= sqrt(num); ++i) {
         if (num % i == 0) return 0;
     }
     return 1;
 }
 
-void die(const char *msg) {
-    perror(msg);
-    exit(EXIT_FAILURE);
-}
-
 int main(int argc, char *argv[]) {
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s LOWER_BOUND UPPER_BOUND N\n", argv[0]);
-        return EXIT_FAILURE;
+        fprintf(stderr, "Usage: %s <start_range> <end_range> <num_children>\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
 
-    int LOWER_BOUND = atoi(argv[1]);
-    int UPPER_BOUND = atoi(argv[2]);
-    int N = atoi(argv[3]);
+    int start_range = atoi(argv[1]);
+    int end_range = atoi(argv[2]);
+    int num_children = atoi(argv[3]);
 
-    // Create shared memory
-    shmid = shmget(IPC_PRIVATE, N * MAX_PRIMES_PER_CHILD * sizeof(int), IPC_CREAT | 0666);
-    if (shmid < 0) die("shmget");
-    shm_ptr = (int *) shmat(shmid, NULL, 0);
-    if (shm_ptr == (int *)(-1)) die("shmat");
+    int numbers_per_child = (end_range - start_range + 1) / num_children;
+    pid_t pids[num_children];
 
-    shm_ptr[0] = 0; // shared index counter for primes
-
-    // Fork N child processes
-    for (int i = 0; i < N; ++i) {
+    // Loop to create children
+    for (int i = 0; i < num_children; ++i) {
         pid_t pid = fork();
-        if (pid < 0) die("fork");
-        if (pid == 0) {
-            // Child process
-            int start = LOWER_BOUND + i * ((UPPER_BOUND - LOWER_BOUND + 1) / N);
-            int end = start + ((UPPER_BOUND - LOWER_BOUND + 1) / N) - 1;
+        if (pid < 0) {
+            perror("fork failed");
+            exit(EXIT_FAILURE);
+        }
 
-            for (int num = start; num <= end; ++num) {
+        if (pid == 0) {  // Child process
+            int child_start = start_range + i * numbers_per_child;
+            int child_end = (i == num_children - 1) ? end_range : (child_start + numbers_per_child - 1);
+
+            // Print which range the child is searching
+            printf("Child %d (PID: %d) searching range %d to %d\n", i, getpid(), child_start, child_end);
+
+            for (int num = child_start; num <= child_end; ++num) {
                 if (is_prime(num)) {
-                    int index = i * MAX_PRIMES_PER_CHILD + shm_ptr[0];
-                    shm_ptr[index] = num;
-                    shm_ptr[0]++;
+                    printf("Child %d found prime number: %d\n", i, num);
                 }
             }
-            _exit(0); // Exit child
+
+            exit(0);
+        } else {
+            pids[i] = pid;
         }
     }
 
-    // Parent process waits for all children
-    for (int i = 0; i < N; ++i) {
-        wait(NULL); // Wait for all children
+    // Parent process waits for all children to finish
+    for (int i = 0; i < num_children; ++i) {
+        waitpid(pids[i], NULL, 0);
     }
 
-    // Parent reads and prints the primes from shared memory
-    printf("Parent: All children finished. Primes found: ");
-    for (int i = 1; i < shm_ptr[0]; ++i) {
-    if (shm_ptr[i] != 0) {  // Print only valid primes
-        printf("%d ", shm_ptr[i]);
-    }
-}
-    printf("\n");
-
-
-    // Clean up shared memory
-    shmdt(shm_ptr);
-    shmctl(shmid, IPC_RMID, NULL);
+    printf("Parent: All children finished.\n");
 
     return 0;
 }
