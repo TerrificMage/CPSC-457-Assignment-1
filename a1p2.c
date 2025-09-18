@@ -3,80 +3,63 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <math.h>
 
-int is_prime(int n) {
-    if (n <= 1) return 0;
-    for (int i = 2; i * i <= n; i++) {
-        if (n % i == 0) return 0;
+void check_prime_range(int start, int end) {
+    for (int num = start; num <= end; ++num) {
+        int is_prime = 1;
+        if (num <= 1) is_prime = 0;
+        for (int i = 2; i <= sqrt(num); ++i) {
+            if (num % i == 0) {
+                is_prime = 0;
+                break;
+            }
+        }
+        if (is_prime) {
+            printf("Child PID %d checking range [%d, %d] found prime: %d\n", getpid(), start, end, num);
+        }
     }
-    return 1;
 }
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s <start> <end> <children_count>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <start> <end> <num_processes>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     int start = atoi(argv[1]);
     int end = atoi(argv[2]);
-    int children_count = atoi(argv[3]);
+    int num_processes = atoi(argv[3]);
 
-    int range_size = (end - start + 1) / children_count;
-    pid_t pids[children_count];
+    int range_size = (end - start + 1) / num_processes;
 
-    // This pipe will store primes found by children
-    int pipes[children_count][2];
-    for (int i = 0; i < children_count; i++) {
-        if (pipe(pipes[i]) == -1) {
-            perror("pipe");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // Creating child processes
-    for (int i = 0; i < children_count; i++) {
-        pids[i] = fork();
-        if (pids[i] < 0) {
+    pid_t pids[num_processes];
+    for (int i = 0; i < num_processes; ++i) {
+        pid_t pid = fork();
+        if (pid < 0) {
             perror("fork");
             exit(EXIT_FAILURE);
         }
 
-        if (pids[i] == 0) {  // Child process
-            int local_start = start + i * range_size;
-            int local_end = (i == children_count - 1) ? end : local_start + range_size - 1;
-
-            close(pipes[i][0]);  // Close reading end in the child process
-
-            // Child is working on its range
-            printf("Child PID %d checking range [%d, %d]\n", getpid(), local_start, local_end);
-            for (int num = local_start; num <= local_end; num++) {
-                if (is_prime(num)) {
-                    write(pipes[i][1], &num, sizeof(int));  // Write found prime to the pipe
-                }
-            }
-            close(pipes[i][1]);  // Close writing end in the child process
-            exit(0);  // Terminate the child process
+        if (pid == 0) {  // Child process
+            int child_start = start + i * range_size;
+            int child_end = (i == num_processes - 1) ? end : child_start + range_size - 1;
+            printf("Child PID %d checking range [%d, %d]\n", getpid(), child_start, child_end);
+            check_prime_range(child_start, child_end);
+            exit(0);
+        } else {  // Parent process
+            pids[i] = pid;
         }
     }
 
-    // Parent process
-    for (int i = 0; i < children_count; i++) {
-        waitpid(pids[i], NULL, 0);  // Wait for each child to finish
+    // Parent waits for all children to finish
+    for (int i = 0; i < num_processes; ++i) {
+        waitpid(pids[i], NULL, 0);
     }
 
     printf("Parent: All children finished. Primes found: ");
-    // Collect primes from each child
-    for (int i = 0; i < children_count; i++) {
-        close(pipes[i][1]);  // Close writing end in the parent process
-
-        int prime;
-        while (read(pipes[i][0], &prime, sizeof(int)) > 0) {
-            printf("%d ", prime);  // Print primes found by the child
-        }
-        close(pipes[i][0]);  // Close reading end in the parent process
-    }
-
+    // Here you could add functionality to collect results from the children, if necessary.
     printf("\n");
+
     return 0;
 }
