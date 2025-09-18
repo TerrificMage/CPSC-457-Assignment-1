@@ -51,8 +51,8 @@ int main(void) {
             }
             close(pipes[r][0]);
 
-            // Log child activity
-            printf("Child %d (PID %d): Searching row %d\n", r, getpid(), r);
+            // Log child activity - show the row it's searching
+            printf("Child %d PID: (%d), searching row %d\n", r, getpid(), r);
 
             // Search for treasure in row r
             for (int c = 0; c < COLS; ++c) {
@@ -71,7 +71,8 @@ int main(void) {
             _exit(NOT_FOUND);
         } else {
             // Parent process
-            pids[r] = pid;
+            pids[r] = pid;  // Store the PID of each child
+            printf("Child %d created with PID %d\n", r, pids[r]);  // Print the PID of each child
             close(pipes[r][1]);  // Close write-end in parent
         }
     }
