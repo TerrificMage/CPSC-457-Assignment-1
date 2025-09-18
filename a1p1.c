@@ -14,6 +14,7 @@ static void die(const char *msg) {
 
 int main(void) {
     // Read the 100x1000 matrix from stdin
+    int one_count = 0;
     for (int r = 0; r < ROWS; ++r) {
         for (int c = 0; c < COLS; ++c) {
             int x;
@@ -26,20 +27,25 @@ int main(void) {
                 return EXIT_FAILURE;
             }
             matrix[r][c] = x;
+            if (x == 1) one_count++;
         }
     }
+    // Comment out the debug line once confirmed
+    // fprintf(stderr, "DEBUG: Matrix read complete, count of 1s = %d\n", one_count);
 
     int pipes[ROWS][2];
     pid_t pids[ROWS];
 
-    // Create child processes and assign them rows to search
     for (int r = 0; r < ROWS; ++r) {
         if (pipe(pipes[r]) == -1) die("pipe");
+
         pid_t pid = fork();
         if (pid < 0) die("fork");
 
-        if (pid == 0) {
-            // Child process
+        if (pid == 0) {  // Child process
+            // Log child creation and the row it is searching
+            printf("Child PID: %d, searching row %d\n", getpid(), r);
+
             // Close unused pipe ends
             for (int i = 0; i < ROWS; ++i) {
                 if (i != r) {
@@ -49,13 +55,10 @@ int main(void) {
             }
             close(pipes[r][0]);
 
-            // Log child activity - show the row it's searching
-            printf("Child %d PID: (%d), searching row %d\n", r, getpid(), r);
-
-            // Search for treasure in row r
+            // Search for treasure (1) in row r
             for (int c = 0; c < COLS; ++c) {
                 if (matrix[r][c] == 1) {
-                    // Send column number to parent
+                    // Send the column number where the 1 was found to parent
                     if (write(pipes[r][1], &c, sizeof(int)) != sizeof(int)) {
                         _exit(NOT_FOUND);
                     }
@@ -64,17 +67,16 @@ int main(void) {
                 }
             }
 
-            // Treasure not found
+            // If no treasure (1) found in the row
             close(pipes[r][1]);
             _exit(NOT_FOUND);
-        } else {
-            // Parent process
-            pids[r] = pid;  // Store the PID of each child
-            close(pipes[r][1]);  // Close write-end in parent
+        } else {  // Parent process
+            pids[r] = pid;
+            close(pipes[r][1]);  // Close write-end in the parent process
         }
     }
 
-    // Parent waits and reads results
+    // Parent waits for each child to finish
     int found = 0;
     int found_row = -1;
     int found_col = -1;
@@ -102,9 +104,9 @@ int main(void) {
         }
     }
 
+    // Output the final results
     if (found) {
-        printf("Parent: The treasure was found by child with PID %d at row %d and column %d\n",
-               (int)found_pid, found_row, found_col);
+        printf("Parent: The treasure was found by child with PID %d at row %d, column %d\n", (int)found_pid, found_row, found_col);
     } else {
         printf("Parent: No treasure was found in the matrix\n");
     }
