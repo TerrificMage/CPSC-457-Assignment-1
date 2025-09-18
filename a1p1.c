@@ -14,7 +14,6 @@ static void die(const char *msg) {
 
 int main(void) {
     // Read the 100x1000 matrix from stdin
-    int one_count = 0;
     for (int r = 0; r < ROWS; ++r) {
         for (int c = 0; c < COLS; ++c) {
             int x;
@@ -27,14 +26,13 @@ int main(void) {
                 return EXIT_FAILURE;
             }
             matrix[r][c] = x;
-            if (x == 1) one_count++;
         }
     }
-    fprintf(stderr, "DEBUG: Matrix read complete, count of 1s = %d\n", one_count);
 
     int pipes[ROWS][2];
     pid_t pids[ROWS];
 
+    // Create child processes and assign them rows to search
     for (int r = 0; r < ROWS; ++r) {
         if (pipe(pipes[r]) == -1) die("pipe");
         pid_t pid = fork();
@@ -72,7 +70,6 @@ int main(void) {
         } else {
             // Parent process
             pids[r] = pid;  // Store the PID of each child
-            printf("Child %d created with PID %d\n", r, pids[r]);  // Print the PID of each child
             close(pipes[r][1]);  // Close write-end in parent
         }
     }
